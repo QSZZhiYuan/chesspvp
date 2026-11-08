@@ -1,0 +1,9 @@
+{
+  "message.chesspvp.board.picked_up": "棋盘已抱起。攻击玩家或女仆后会放回原位。",
+  "message.chesspvp.board.restored": "棋盘已放回原位。",
+  "message.chesspvp.board.restore_blocked": "原位置被占用或未加载，棋盘数据仍保留；清出原位置后会自动重试恢复，也可再次攻击或潜行左键棋盘。",
+  "advancements.chesspvp.chess_sage.title": "棋圣",
+  "advancements.chesspvp.chess_sage.description": "赢得一场五子棋、国际象棋或中国象棋对局。",
+  "message.chesspvp.board.not_allowed": "无法抱起：超出交互距离，或当前位置受保护。",
+  "message.chesspvp.board.invalid_structure": "无法抱起：棋盘结构不完整或尚未加载，请检查棋盘周围九格。"
+}

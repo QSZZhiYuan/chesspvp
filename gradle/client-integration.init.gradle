@@ -1,0 +1,29 @@
+// Opt-in real client smoke test. Does not change the release JAR.
+allprojects { project ->
+    afterEvaluate {
+        def smoke = project.sourceSets.create('clientIntegration')
+        smoke.java.srcDir project.file('src/clientIntegration/java')
+        smoke.compileClasspath += project.sourceSets.main.output + project.sourceSets.main.compileClasspath
+        smoke.runtimeClasspath += project.sourceSets.main.output + project.sourceSets.main.runtimeClasspath
+        project.neoForge.mods.named('chesspvp') { sourceSet smoke }
+        project.neoForge.runs.named('client') {
+            gameDirectory = project.file('build/carry-client')
+            programArguments.addAll('--quickPlaySingleplayer', project.providers.gradleProperty('chesspvpClientWorld').getOrElse('chesspvp-carry-test'), '--width', '1100', '--height', '720')
+        }
+        project.tasks.named('runClient') {
+            doFirst {
+                def name = project.providers.gradleProperty('chesspvpClientWorld').getOrElse('chesspvp-carry-test')
+                if (!project.file('build/carry-client/saves/' + name + '/level.dat').isFile()) {
+                    throw new GradleException('Prepare an isolated test world in build/carry-client/saves/' + name + ' first.')
+                }
+                project.file('build/carry-client/logs/latest.log').delete()
+            }
+            doLast {
+                def log = project.file('build/carry-client/logs/latest.log')
+                if (!log.exists() || !log.getText('UTF-8').contains('CHESSPVP_CLIENT_INTEGRATION PASS:')) {
+                    throw new GradleException('Real client carry/render smoke failed; inspect build/carry-client/logs/latest.log')
+                }
+            }
+        }
+    }
+}

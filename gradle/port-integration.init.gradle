@@ -1,0 +1,25 @@
+// Opt-in dedicated-server checks. Test classes never enter the production JAR.
+allprojects { project ->
+    afterEvaluate {
+        def smoke = project.sourceSets.create('portIntegration')
+        smoke.java.srcDir project.file('src/integrationTest/java')
+        smoke.compileClasspath += project.sourceSets.main.output + project.sourceSets.main.compileClasspath
+        smoke.runtimeClasspath += project.sourceSets.main.output + project.sourceSets.main.runtimeClasspath
+        project.neoForge.mods.named('chesspvp') { sourceSet smoke }
+        project.neoForge.runs.named('server') {
+            gameDirectory = project.file('build/port-integration-world')
+        }
+        project.tasks.named('runServer') {
+            doFirst {
+                def log = project.file('build/port-integration-world/logs/latest.log')
+                if (log.exists()) log.delete()
+            }
+            doLast {
+                def log = project.file('build/port-integration-world/logs/latest.log')
+                if (!log.exists() || !log.getText('UTF-8').contains('CHESSPVP_INTEGRATION PASS:')) {
+                    throw new GradleException('ChessPVP integration assertions failed; inspect the isolated server log.')
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,37 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="chesspvp"
+version="${mod_version}"
+displayName="Chess PVP Addon"
+authors="QSZ_ZhiYuan"
+description='''
+为 Touhou Little Maid 的五子棋、中国象棋、国际象棋添加双人玩家对战。
+空手点击棋盘加入对局，双方轮流下棋；女仆入座时保留原来的玩家对女仆玩法。
+'''
+
+[[mixins]]
+config="chesspvp.mixins.json"
+
+[[dependencies.chesspvp]]
+modId="neoforge"
+type="required"
+versionRange="${neo_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.chesspvp]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.chesspvp]]
+modId="touhou_little_maid"
+type="required"
+versionRange="[1.5.3,1.6)"
+ordering="AFTER"
+side="BOTH"

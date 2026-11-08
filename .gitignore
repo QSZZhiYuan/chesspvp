@@ -1,0 +1,38 @@
+# Gradle and build output
+.gradle/
+build/
+repo/
+# Game runs, logs and saved worlds
+run/
+runs/
+logs/
+crash-reports/
+saves/
+*.log
+*.hprof
+# Local dependencies; retain the Gradle wrapper
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+# IDE metadata
+.idea/
+.vscode/
+.eclipse/
+.settings/
+.classpath
+.project
+.factorypath
+*.iml
+*.ipr
+*.iws
+bin/
+out/
+# OS and local environment
+.DS_Store
+Thumbs.db
+desktop.ini
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc

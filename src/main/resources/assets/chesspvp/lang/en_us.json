@@ -1,0 +1,9 @@
+{
+  "message.chesspvp.board.picked_up": "Board picked up. Attack a player or maid to return it to its original position.",
+  "message.chesspvp.board.restored": "Board returned to its original position.",
+  "message.chesspvp.board.restore_blocked": "The original position is occupied or unloaded. The board data is preserved. Restoration retries automatically once cleared; you can also attack again or sneak-left-click a chessboard.",
+  "advancements.chesspvp.chess_sage.title": "Chess Sage",
+  "advancements.chesspvp.chess_sage.description": "Win a game of Gomoku, chess, or Chinese chess.",
+  "message.chesspvp.board.not_allowed": "Cannot pick up: out of reach or this position is protected.",
+  "message.chesspvp.board.invalid_structure": "Cannot pick up: the nine-part board is incomplete or not loaded."
+}
