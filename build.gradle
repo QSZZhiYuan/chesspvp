@@ -1,44 +1,159 @@
-plugins {
-    id 'java-library'
-    id 'net.neoforged.moddev' version '2.0.141'
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '[6.0,6.2)'
+        classpath group: 'org.spongepowered', name: 'mixingradle', version: '0.7-SNAPSHOT'
+    }
 }
 
-group = 'com.zawu.chesspvp'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'idea'
+
+tasks.named('wrapper', Wrapper).configure {
+    distributionType = Wrapper.DistributionType.BIN
+}
+
 version = mod_version
-base.archivesName = "chesspvp-${minecraft_version}-neoforge"
-java.toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
-java.withSourcesJar()
+group = mod_group_id
 
-repositories { mavenCentral() }
+// 指定Java 17路径
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 
-neoForge {
-    version = neo_version
+sourceSets.main.resources {
+    srcDir('src/main/templates')
+    srcDir('src/generated/resources')
+    exclude("**/*.bbmodel")
+    exclude("src/generated/**/.cache")
+}
+
+repositories {
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
+    mavenCentral()
+}
+
+base {
+    archivesName = "${mod_id}-${minecraft_version}-forge"
+}
+
+minecraft {
+    // 使用官方mappings
+    mappings channel: 'official', version: minecraft_version
+
     runs {
         client {
-            client()
-            gameDirectory = project.file('run/client')
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
+            mods {
+                chesspvp {
+                    source sourceSets.main
+                }
+            }
         }
+
         server {
-            server()
-            gameDirectory = project.file('run/server')
-            programArgument '--nogui'
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            args '--nogui'
+
+            mods {
+                chesspvp {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'chesspvp', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+
+            mods {
+                chesspvp {
+                    source sourceSets.main
+                }
+            }
         }
     }
-    mods { chesspvp { sourceSet sourceSets.main } }
+}
+
+mixin {
+    add sourceSets.main, "chesspvp.refmap.json"
+    config "chesspvp.mixins.json"
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
 }
 
 dependencies {
-    // Development dependency only; Touhou Little Maid is never embedded in this addon.
-    implementation files(project.file(maid_jar))
+    minecraft 'net.minecraftforge:forge:' + minecraft_version + '-' + forge_version
+
+    compileOnly files(maid_jar)
+    localRuntime files(maid_jar)
+
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    annotationProcessor files(maid_jar)
+}
+
+tasks.withType(ProcessResources).configureEach {
+    filteringCharset = 'UTF-8'
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_version          : forge_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
-tasks.withType(ProcessResources).configureEach {
-    filteringCharset = 'UTF-8'
-    def props = [minecraft_version_range: minecraft_version_range,
-                 neo_version_range: neo_version_range, mod_version: mod_version]
-    inputs.properties props
-    filesMatching('META-INF/neoforge.mods.toml') { expand props }
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
 }

@@ -21,8 +21,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -36,15 +35,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BlockCChess.class)
 public abstract class BlockCChessPvpMixin {
-    @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true, remap = false)
-    private void chesspvp$use(ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit,
-                              CallbackInfoReturnable<ItemInteractionResult> cir) {
+    @Inject(method = {"use", "m_6227_"}, at = @At("HEAD"), cancellable = true, remap = false)
+    private void chesspvp$use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit,
+                              CallbackInfoReturnable<InteractionResult> cir) {
         if (!(level instanceof ServerLevel serverLevel) || hand != InteractionHand.MAIN_HAND) {
             return;
         }
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
+
         GomokuPart part = state.getValue(BlockCChess.PART);
         BlockPos centerPos = pos.subtract(new Vec3i(part.getPosX(), 0, part.getPosY()));
         BlockEntity be = level.getBlockEntity(centerPos);
@@ -60,7 +60,7 @@ public abstract class BlockCChessPvpMixin {
 
         // only empty hand
         if (!player.getMainHandItem().isEmpty()) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
@@ -72,15 +72,11 @@ public abstract class BlockCChessPvpMixin {
 
         // reset
         if (CChessUtil.isClickResetArea(clickPos)) {
-            if (ChessPvpUtil.hasPvp(data) && !ChessPvpUtil.isP1(data, serverPlayer) && !ChessPvpUtil.isP2(data, serverPlayer)) {
-                cir.setReturnValue(ItemInteractionResult.FAIL);
-                return;
-            }
             chess.reset();
             ChessPvpUtil.clearPvp(data);
             chess.refresh();
             level.playSound(null, centerPos, InitSounds.GOMOKU_RESET.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
@@ -89,48 +85,48 @@ public abstract class BlockCChessPvpMixin {
             ChessPvpUtil.setP1(data, serverPlayer.getUUID());
             chess.refresh();
             serverPlayer.sendSystemMessage(Component.literal("[ChessPVP] 你加入了对局(玩家1/红方)。"));
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
         if (ChessPvpUtil.getP2(data) == null && !ChessPvpUtil.isP1(data, serverPlayer)) {
             ChessPvpUtil.setP2(data, serverPlayer.getUUID());
             chess.refresh();
             serverPlayer.sendSystemMessage(Component.literal("[ChessPVP] 你加入了对局(玩家2/黑方)。"));
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         // spectator: cannot interact
         if (!ChessPvpUtil.isP1(data, serverPlayer) && !ChessPvpUtil.isP2(data, serverPlayer)) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         if (!ChessPvpUtil.hasBoth(data)) {
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         boolean isP1Turn = chess.isPlayerTurn();
         if ((isP1Turn && !ChessPvpUtil.isP1(data, serverPlayer)) || (!isP1Turn && !ChessPvpUtil.isP2(data, serverPlayer))) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         // no click on board
         int nowClick = CChessUtil.getClickPosition(clickPos);
         if (nowClick < 0 || !Position.IN_BOARD(nowClick)) {
-            cir.setReturnValue(ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION);
+            cir.setReturnValue(InteractionResult.PASS);
             return;
         }
 
         // cannot play if draw/lose
         if (chess.isMoveNumberLimit() || chess.isRepeat()) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
         if (chess.isCheckmate()) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
@@ -158,9 +154,9 @@ public abstract class BlockCChessPvpMixin {
             if (ownPieceNow) {
                 chess.setSelectChessPoint(nowClick);
                 chess.refresh();
-                level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.getRandom().nextFloat() * 0.4F);
+                level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.random.nextFloat() * 0.4F);
             }
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
@@ -168,43 +164,36 @@ public abstract class BlockCChessPvpMixin {
         if (ownPiecePre && ownPieceNow) {
             chess.setSelectChessPoint(nowClick);
             chess.refresh();
-            level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.getRandom().nextFloat() * 0.4F);
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.random.nextFloat() * 0.4F);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         int move = Position.MOVE(preClick, nowClick);
         if (!chessData.legalMove(move)) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         boolean notChecked = chessData.makeMove(move);
         if (notChecked) {
-            if (chessData.captured()) {
-                chessData.setIrrev();
-            }
             chess.setCheckmate(chessData.isMate());
             if (chess.isCheckmate()) {
                 ChessPvpUtil.awardChessSage(serverPlayer);
             }
-            if (!chess.isCheckmate()) {
-                if (CChessUtil.reachMoveLimit(chessData)) {
-                    chess.setMoveNumberLimit(true);
-                } else if (CChessUtil.isRepeat(chessData)) {
-                    chess.setRepeat(true);
-                }
+            if (chessData.captured()) {
+                chessData.setIrrev();
             }
             chess.addChessCounter();
             chess.setSelectChessPoint(nowClick);
             chess.refresh();
-            level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.getRandom().nextFloat() * 0.4F);
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            level.playSound(null, pos, InitSounds.GOMOKU.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.random.nextFloat() * 0.4F);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         player.sendSystemMessage(Component.translatable("message.touhou_little_maid.cchess.check"));
-        level.playSound(null, pos, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 1.0f, 0.8F + level.getRandom().nextFloat() * 0.4F);
-        cir.setReturnValue(ItemInteractionResult.FAIL);
+        level.playSound(null, pos, SoundEvents.NOTE_BLOCK_BELL.get(), SoundSource.BLOCKS, 1.0f, 0.8F + level.random.nextFloat() * 0.4F);
+        cir.setReturnValue(InteractionResult.FAIL);
     }
 }

@@ -1,15 +1,17 @@
 package com.zawu.chesspvp;
 
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(ChessPvpMod.MODID)
-public final class ChessPvpMod {
+public class ChessPvpMod {
     public static final String MODID = "chesspvp";
 
-    public ChessPvpMod(ModContainer container, net.neoforged.bus.api.IEventBus modBus) {
-        modBus.addListener(com.zawu.chesspvp.network.ChessPvpNetwork::register);
-        container.registerConfig(ModConfig.Type.COMMON, ChessPvpConfig.SPEC);
+    public ChessPvpMod() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        com.zawu.chesspvp.network.ChessPvpNetwork.init();
+        ModLoadingContext.get().registerConfig(net.minecraftforge.fml.config.ModConfig.Type.COMMON, ChessPvpConfig.SPEC);
     }
 }

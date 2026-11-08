@@ -1,6 +1,6 @@
 # Chess PVP Addon
 
-为 Touhou Little Maid 添加玩家棋类对战与抱棋盘玩法。当前分支：**Minecraft 1.21.1 / NeoForge**，附属版本 **1.0.3**。
+为 Touhou Little Maid 添加玩家棋类对战与抱棋盘玩法。当前分支：**Minecraft 1.20.1 / Forge**，附属版本 **1.0.3**。
 
 ## 版本分支
 
@@ -26,7 +26,7 @@
 
 ## 构建
 
-使用 **JDK 21**。工程使用 Java toolchain，不包含本机 JDK 绝对路径。
+使用 **JDK 17**。工程使用 Java toolchain，不包含本机 JDK 绝对路径。
 
 先准备对应版本的 Touhou Little Maid 开发依赖（Python 3，仅标准库）：
 
@@ -49,17 +49,6 @@ Gradle wrapper 已纳入版本控制；前置 JAR、构建目录、开发存档�
 
 1.0.3 的成就条件已核对前置真实触发器，并静态检查全部 16 种条件组合。
 本轮整理仅编译与静态检查，未启动客户端或服务器；详细记录见 [VERIFICATION.md](VERIFICATION.md)。
-
-本分支保留可选集成测试，只有显式加入 `gradle/port-integration.init.gradle` 才会加载，不进入发行 JAR：
-
-```sh
-./gradlew -I gradle/port-integration.init.gradle compilePortIntegrationJava
-```
-
-这条命令只编译测试源码，不启动游戏。运行测试须单独选择 `runServer`，在隔离的 `build/port-integration-world` 中进行，并自行确认 EULA。
-
-可选客户端测试使用 `gradle/client-integration.init.gradle`，需要自行在 `build/carry-client/saves/chesspvp-carry-test` 准备隔离测试世界；可用 `-PchesspvpClientWorld=世界文件夹名` 指定。
-默认构建不会载入或启动客户端测试。
 
 ## 更新记录与许可
 

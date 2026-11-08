@@ -16,19 +16,19 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.client.event.RenderHandEvent;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
+import net.minecraftforge.client.event.RenderHandEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /** Reuses the original board and piece models, with a separate, read-only block entity. */
-@EventBusSubscriber(modid = ChessPvpMod.MODID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = ChessPvpMod.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class CarriedBoardRenderer {
     private static final Map<UUID, Preview> PREVIEWS = new HashMap<>();
     private record Preview(CompoundTag source, Object level, BlockPos pos, TileEntityJoy board) {}
@@ -87,7 +87,7 @@ public final class CarriedBoardRenderer {
             };
             if (preview == null) return;
             preview.setLevel(mc.level);
-            preview.loadAdditional(snapshot.getCompound("BlockEntity"), mc.level.registryAccess());
+            preview.load(snapshot.getCompound("BlockEntity"));
             PREVIEWS.put(player.getUUID(), new Preview(snapshot, mc.level, pos, preview));
         }
         var renderer = (BlockEntityRenderer<TileEntityJoy>) mc.getBlockEntityRenderDispatcher().getRenderer(preview);

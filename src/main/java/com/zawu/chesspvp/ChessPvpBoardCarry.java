@@ -24,20 +24,20 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.TickEvent;
 
 import com.zawu.chesspvp.network.ChessPvpNetwork;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@EventBusSubscriber(modid = ChessPvpMod.MODID)
+@Mod.EventBusSubscriber(modid = ChessPvpMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class ChessPvpBoardCarry {
     private static final String CARRY_KEY = "ChessPvpCarriedBoard";
     private static final String BOARD_DATA = "BlockEntity";
@@ -77,7 +77,7 @@ public final class ChessPvpBoardCarry {
     /** Entry point for a decoded client request. The client supplies only a position. */
     public static boolean requestCarry(ServerPlayer player, BlockPos pos) {
         ServerLevel level = (ServerLevel) player.level();
-        if (!player.mayBuild() || !player.canInteractWithBlock(pos, 1.0)
+        if (!player.mayBuild() || !player.canReach(pos, 1.0)
                 || !level.mayInteract(player, pos) || !level.getWorldBorder().isWithinBounds(pos) ) {
             player.sendSystemMessage(Component.translatable("message.chesspvp.board.not_allowed"));
             return false;
@@ -163,7 +163,7 @@ public final class ChessPvpBoardCarry {
         carried.putString("Dimension", level.dimension().toString());
         carried.putLong("Center", center.asLong());
         carried.putInt("Facing", facing.get3DDataValue());
-        carried.put(BOARD_DATA, blockEntity.saveWithoutMetadata(level.registryAccess()));
+        carried.put(BOARD_DATA, blockEntity.saveWithFullMetadata());
         player.getPersistentData().put(CARRY_KEY, carried);
 
         // BlockJoy discards its seat on removal. The snapshot already has the real UUID;
@@ -188,6 +188,7 @@ public final class ChessPvpBoardCarry {
         if (!(target instanceof Player || target instanceof EntityMaid) || !hasBoard(player)) {
             return false;
         }
+
         CompoundTag carried = player.getPersistentData().getCompound(CARRY_KEY);
         carried.putBoolean(RESTORE_PENDING, true);
         carried.putBoolean(BONUS_TURN, true);
@@ -199,7 +200,8 @@ public final class ChessPvpBoardCarry {
     }
 
     @SubscribeEvent
-    public static void onServerTick(ServerTickEvent.Post event) {
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
             if (hasBoard(player) && player.getPersistentData().getCompound(CARRY_KEY).getBoolean(RESTORE_PENDING)) {
                 tryRestore(player);
@@ -256,7 +258,7 @@ public final class ChessPvpBoardCarry {
 
         BlockEntity blockEntity = targetLevel.getBlockEntity(center);
         if (alreadyPlaced && blockEntity instanceof TileEntityJoy joy && matchesBoardEntity(type, joy)
-                && joy.saveWithoutMetadata(targetLevel.registryAccess()).equals(carried.getCompound(BOARD_DATA))) {
+                && joy.saveWithFullMetadata().equals(carried.getCompound(BOARD_DATA))) {
             finishRestore(player, carried, joy);
             return true;
         }
@@ -276,7 +278,7 @@ public final class ChessPvpBoardCarry {
             rollbackPlacement(targetLevel, type, block, placed);
             return false;
         }
-        joy.loadAdditional(carried.getCompound(BOARD_DATA), targetLevel.registryAccess());
+        joy.load(carried.getCompound(BOARD_DATA));
         joy.setChanged();
         finishRestore(player, carried, joy);
         return true;

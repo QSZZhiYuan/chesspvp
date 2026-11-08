@@ -71,8 +71,8 @@ public final class ChessPvpUtil {
     }
 
     public static void awardChessSage(ServerPlayer player) {
-        var advancementId = ResourceLocation.fromNamespaceAndPath("chesspvp", "chess_sage");
-        var advancement = player.getServer().getAdvancements().get(advancementId);
+        var advancementId = new ResourceLocation("chesspvp", "chess_sage");
+        var advancement = player.getServer().getAdvancements().getAdvancement(advancementId);
         if (advancement != null) {
             player.getAdvancements().award(advancement, "win");
         }
