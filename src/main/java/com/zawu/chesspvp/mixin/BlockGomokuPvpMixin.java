@@ -20,7 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -47,13 +47,17 @@ public abstract class BlockGomokuPvpMixin {
 
     @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true, remap = false)
     private void chesspvp$use(ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit,
-                              CallbackInfoReturnable<ItemInteractionResult> cir) {
+                              CallbackInfoReturnable<InteractionResult> cir) {
         if (!(level instanceof ServerLevel serverLevel) || hand != InteractionHand.MAIN_HAND) {
             return;
         }
         if (!(player instanceof ServerPlayer serverPlayer)) {
             return;
         }
+        if (!itemStack.isEmpty()) {
+            return;
+        }
+
         GomokuPart part = state.getValue(BlockGomoku.PART);
         BlockPos centerPos = pos.subtract(new Vec3i(part.getPosX(), 0, part.getPosY()));
         BlockEntity be = level.getBlockEntity(centerPos);
@@ -70,7 +74,7 @@ public abstract class BlockGomokuPvpMixin {
 
         // pvp mode: we fully handle interaction
         if (!player.getMainHandItem().isEmpty()) {
-            cir.setReturnValue(ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION);
+            cir.setReturnValue(InteractionResult.PASS);
             return;
         }
 
@@ -80,14 +84,14 @@ public abstract class BlockGomokuPvpMixin {
         // reset
         if (isClickChessBox(location.x, location.z, part, facing)) {
             if (ChessPvpUtil.hasPvp(data) && !ChessPvpUtil.isP1(data, serverPlayer) && !ChessPvpUtil.isP2(data, serverPlayer)) {
-                cir.setReturnValue(ItemInteractionResult.FAIL);
+                cir.setReturnValue(InteractionResult.FAIL);
                 return;
             }
             gomoku.reset();
             ChessPvpUtil.clearPvp(data);
             gomoku.refresh();
             level.playSound(null, centerPos, InitSounds.GOMOKU_RESET.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
@@ -97,7 +101,7 @@ public abstract class BlockGomokuPvpMixin {
             ChessPvpUtil.ensureTurnInitialized(data);
             gomoku.refresh();
             serverPlayer.sendSystemMessage(Component.literal("[ChessPVP] 你加入了对局(玩家1/黑子)。"));
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
         if (ChessPvpUtil.getP2(data) == null && !ChessPvpUtil.isP1(data, serverPlayer)) {
@@ -105,37 +109,37 @@ public abstract class BlockGomokuPvpMixin {
             ChessPvpUtil.ensureTurnInitialized(data);
             gomoku.refresh();
             serverPlayer.sendSystemMessage(Component.literal("[ChessPVP] 你加入了对局(玩家2/白子)。"));
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         // spectator: cannot interact
         if (!ChessPvpUtil.isP1(data, serverPlayer) && !ChessPvpUtil.isP2(data, serverPlayer)) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         if (!ChessPvpUtil.hasBoth(data)) {
             // waiting for second player
-            cir.setReturnValue(ItemInteractionResult.SUCCESS);
+            cir.setReturnValue(InteractionResult.SUCCESS);
             return;
         }
 
         ChessPvpUtil.ensureTurnInitialized(data);
         int turn = ChessPvpUtil.getTurn(data); // 0 -> p1 black, 1 -> p2 white
         if ((turn == 0 && !ChessPvpUtil.isP1(data, serverPlayer)) || (turn == 1 && !ChessPvpUtil.isP2(data, serverPlayer))) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         if (gomoku.getStatue() != Statue.IN_PROGRESS) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
         int[] clickPos = getChessPos(location.x, location.z, part);
         if (clickPos == null) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
@@ -143,7 +147,7 @@ public abstract class BlockGomokuPvpMixin {
         int x = clickPos[0];
         int y = clickPos[1];
         if (board[x][y] != Point.EMPTY) {
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.FAIL);
             return;
         }
 
@@ -163,6 +167,6 @@ public abstract class BlockGomokuPvpMixin {
         }
 
         gomoku.refresh();
-        cir.setReturnValue(ItemInteractionResult.SUCCESS);
+        cir.setReturnValue(InteractionResult.SUCCESS);
     }
 }

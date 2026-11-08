@@ -24,6 +24,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.util.ProblemReporter;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -77,8 +79,9 @@ public final class ChessPvpBoardCarry {
     /** Entry point for a decoded client request. The client supplies only a position. */
     public static boolean requestCarry(ServerPlayer player, BlockPos pos) {
         ServerLevel level = (ServerLevel) player.level();
-        if (!player.mayBuild() || !player.canInteractWithBlock(pos, 1.0)
-                || !level.mayInteract(player, pos) || !level.getWorldBorder().isWithinBounds(pos) ) {
+        if (!player.mayBuild() || !player.isWithinBlockInteractionRange(pos, 1.0)
+                || !level.mayInteract(player, pos) || !level.getWorldBorder().isWithinBounds(pos)
+                || level.getServer().isUnderSpawnProtection(level, pos, player) ) {
             player.sendSystemMessage(Component.translatable("message.chesspvp.board.not_allowed"));
             return false;
         }
@@ -92,7 +95,7 @@ public final class ChessPvpBoardCarry {
     }
 
     public static CompoundTag getCarriedData(ServerPlayer player) {
-        return player.getPersistentData().getCompound(CARRY_KEY).copy();
+        return player.getPersistentData().getCompoundOrEmpty(CARRY_KEY).copy();
     }
 
     @SubscribeEvent
@@ -116,7 +119,7 @@ public final class ChessPvpBoardCarry {
                                                 ServerPlayer player) {
         CompoundTag playerData = player.getPersistentData();
         if (playerData.contains(CARRY_KEY)) {
-            CompoundTag carried = playerData.getCompound(CARRY_KEY);
+            CompoundTag carried = playerData.getCompoundOrEmpty(CARRY_KEY);
             carried.putBoolean(RESTORE_PENDING, true);
             playerData.put(CARRY_KEY, carried);
             if (!tryRestore(player)) {
@@ -168,7 +171,7 @@ public final class ChessPvpBoardCarry {
 
         // BlockJoy discards its seat on removal. The snapshot already has the real UUID;
         // detach only the old block entity so carrying does not eject the seated maid.
-        joy.setSitId(net.minecraft.Util.NIL_UUID);
+        joy.setSitId(new UUID(0L, 0L));
         for (BlockPos partPos : positions) {
             level.setBlock(partPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
         }
@@ -188,7 +191,7 @@ public final class ChessPvpBoardCarry {
         if (!(target instanceof Player || target instanceof EntityMaid) || !hasBoard(player)) {
             return false;
         }
-        CompoundTag carried = player.getPersistentData().getCompound(CARRY_KEY);
+        CompoundTag carried = player.getPersistentData().getCompoundOrEmpty(CARRY_KEY);
         carried.putBoolean(RESTORE_PENDING, true);
         carried.putBoolean(BONUS_TURN, true);
         player.getPersistentData().put(CARRY_KEY, carried);
@@ -201,7 +204,7 @@ public final class ChessPvpBoardCarry {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
-            if (hasBoard(player) && player.getPersistentData().getCompound(CARRY_KEY).getBoolean(RESTORE_PENDING)) {
+            if (hasBoard(player) && player.getPersistentData().getCompoundOrEmpty(CARRY_KEY).getBooleanOr(RESTORE_PENDING, false)) {
                 tryRestore(player);
             }
         }
@@ -210,7 +213,7 @@ public final class ChessPvpBoardCarry {
     @SubscribeEvent
     public static void onPlayerDeath(LivingDeathEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && hasBoard(player)) {
-            CompoundTag carried = player.getPersistentData().getCompound(CARRY_KEY);
+            CompoundTag carried = player.getPersistentData().getCompoundOrEmpty(CARRY_KEY);
             carried.putBoolean(RESTORE_PENDING, true);
             player.getPersistentData().put(CARRY_KEY, carried);
             tryRestore(player);
@@ -222,18 +225,18 @@ public final class ChessPvpBoardCarry {
         if (!playerData.contains(CARRY_KEY)) {
             return false;
         }
-        CompoundTag carried = playerData.getCompound(CARRY_KEY);
-        ServerLevel targetLevel = findLevel(player, carried.getString("Dimension"));
+        CompoundTag carried = playerData.getCompoundOrEmpty(CARRY_KEY);
+        ServerLevel targetLevel = findLevel(player, carried.getStringOr("Dimension", ""));
         if (targetLevel == null) {
             return false;
         }
 
-        int type = carried.getInt("Type");
+        int type = carried.getIntOr("Type", -1);
         if (type < GOMOKU || type > CHINESE) {
             return false;
         }
-        BlockPos center = BlockPos.of(carried.getLong("Center"));
-        Direction facing = Direction.from3DDataValue(carried.getInt("Facing"));
+        BlockPos center = BlockPos.of(carried.getLongOr("Center", 0L));
+        Direction facing = Direction.from3DDataValue(carried.getIntOr("Facing", 0));
         Block block = blockFor(type);
         List<BlockPos> positions = new ArrayList<>(GomokuPart.values().length);
         boolean alreadyPlaced = true;
@@ -256,7 +259,7 @@ public final class ChessPvpBoardCarry {
 
         BlockEntity blockEntity = targetLevel.getBlockEntity(center);
         if (alreadyPlaced && blockEntity instanceof TileEntityJoy joy && matchesBoardEntity(type, joy)
-                && joy.saveWithoutMetadata(targetLevel.registryAccess()).equals(carried.getCompound(BOARD_DATA))) {
+                && joy.saveWithoutMetadata(targetLevel.registryAccess()).equals(carried.getCompoundOrEmpty(BOARD_DATA))) {
             finishRestore(player, carried, joy);
             return true;
         }
@@ -276,14 +279,14 @@ public final class ChessPvpBoardCarry {
             rollbackPlacement(targetLevel, type, block, placed);
             return false;
         }
-        joy.loadAdditional(carried.getCompound(BOARD_DATA), targetLevel.registryAccess());
+        joy.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, targetLevel.registryAccess(), carried.getCompoundOrEmpty(BOARD_DATA)));
         joy.setChanged();
         finishRestore(player, carried, joy);
         return true;
     }
 
     private static void finishRestore(ServerPlayer player, CompoundTag carried, TileEntityJoy joy) {
-        if (carried.getBoolean(BONUS_TURN)) {
+        if (carried.getBooleanOr(BONUS_TURN, false)) {
             grantExtraTurn(joy, player);
         }
         joy.refresh();
@@ -341,7 +344,7 @@ public final class ChessPvpBoardCarry {
     }
 
     private static ServerLevel findLevel(ServerPlayer player, String dimension) {
-        for (ServerLevel level : player.getServer().getAllLevels()) {
+        for (ServerLevel level : player.level().getServer().getAllLevels()) {
             if (level.dimension().toString().equals(dimension)) {
                 return level;
             }

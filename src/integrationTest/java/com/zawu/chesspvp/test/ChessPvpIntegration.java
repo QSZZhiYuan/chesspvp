@@ -23,7 +23,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,7 +48,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.util.UUID;
-
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
 
 /** Calls the real, mixin-transformed blocks in an isolated dedicated server. */
 @EventBusSubscriber(modid = "chesspvp")
@@ -73,7 +74,7 @@ public final class ChessPvpIntegration {
             spectator = player("ChessPvpView", 3);
             gomoku();
             var chessSage = level.getServer().getAdvancements().get(
-                    ResourceLocation.fromNamespaceAndPath("chesspvp", "chess_sage"));
+                    Identifier.fromNamespaceAndPath("chesspvp", "chess_sage"));
             require(chessSage != null, "Chess Sage advancement is loaded");
             require(chessSage.value().requirements().names().contains("win"),
                     "Chess Sage completion requirement references the win criterion");
@@ -301,7 +302,7 @@ public final class ChessPvpIntegration {
 
     private static void roundTrip(TileEntityJoy original, TileEntityJoy restored) {
         CompoundTag tag = original.saveWithoutMetadata(level.registryAccess());
-        restored.loadWithComponents(tag, level.registryAccess());
+        restored.loadWithComponents(TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), tag));
         require(ChessPvpUtil.getP1(original.getPersistentData()).equals(ChessPvpUtil.getP1(restored.getPersistentData())), "P1 persists");
         require(ChessPvpUtil.getP2(original.getPersistentData()).equals(ChessPvpUtil.getP2(restored.getPersistentData())), "P2 persists");
     }

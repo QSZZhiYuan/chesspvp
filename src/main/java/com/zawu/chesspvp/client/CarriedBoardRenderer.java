@@ -7,7 +7,7 @@ import com.zawu.chesspvp.ChessPvpMod;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
@@ -46,13 +46,14 @@ public final class CarriedBoardRenderer {
             pose.mulPose(Axis.XP.rotationDegrees(18));
             pose.scale(0.42F, 0.42F, 0.42F);
             pose.translate(-0.5, -0.05, -0.5);
-            draw(player, event.getPartialTick(), pose, event.getMultiBufferSource(), event.getPackedLight());
+            draw(player, event.getPartialTick(), pose, event.getSubmitNodeCollector(), event.getPackedLight());
         } finally { pose.popPose(); }
     }
 
     @SubscribeEvent
-    public static void thirdPerson(RenderPlayerEvent.Post event) {
-        Player player = event.getEntity();
+    public static void thirdPerson(RenderPlayerEvent.Post<?> event) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null || !(mc.level.getEntity(event.getRenderState().id) instanceof Player player)) return;
         if (player.isInvisible() || player.isSpectator() || CarriedBoardState.get(player.getUUID()) == null) return;
         PoseStack pose = event.getPoseStack();
         pose.pushPose();
@@ -63,12 +64,12 @@ public final class CarriedBoardRenderer {
             pose.mulPose(Axis.XP.rotationDegrees(-12));
             pose.scale(0.42F, 0.42F, 0.42F);
             pose.translate(-0.5, 0, -0.5);
-            draw(player, event.getPartialTick(), pose, event.getMultiBufferSource(), event.getPackedLight());
+            draw(player, event.getPartialTick(), pose, event.getSubmitNodeCollector(), event.getRenderState().lightCoords);
         } finally { pose.popPose(); }
     }
 
     @SuppressWarnings("unchecked")
-    private static void draw(Player player, float partialTick, PoseStack pose, MultiBufferSource buffers, int light) {
+    private static void draw(Player player, float partialTick, PoseStack pose, SubmitNodeCollector buffers, int light) {
         var mc = Minecraft.getInstance();
         if (mc.level == null) return;
         CompoundTag snapshot = CarriedBoardState.get(player.getUUID());
@@ -79,7 +80,7 @@ public final class CarriedBoardRenderer {
         if (cached != null && cached.source() == snapshot && cached.level() == mc.level && cached.pos().equals(pos)) {
             preview = cached.board();
         } else {
-            preview = switch (snapshot.getInt("Type")) {
+            preview = switch (snapshot.getIntOr("Type", -1)) {
                 case 0 -> new TileEntityGomoku(pos, InitBlocks.GOMOKU.get().defaultBlockState().setValue(BlockGomoku.FACING, Direction.NORTH));
                 case 1 -> new TileEntityWChess(pos, InitBlocks.WCHESS.get().defaultBlockState().setValue(BlockGomoku.FACING, Direction.NORTH));
                 case 2 -> new TileEntityCChess(pos, InitBlocks.CCHESS.get().defaultBlockState().setValue(BlockGomoku.FACING, Direction.NORTH));
@@ -87,11 +88,22 @@ public final class CarriedBoardRenderer {
             };
             if (preview == null) return;
             preview.setLevel(mc.level);
-            preview.loadAdditional(snapshot.getCompound("BlockEntity"), mc.level.registryAccess());
+            preview.loadAdditional(net.minecraft.world.level.storage.TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING, mc.level.registryAccess(), snapshot.getCompoundOrEmpty("BlockEntity")));
             PREVIEWS.put(player.getUUID(), new Preview(snapshot, mc.level, pos, preview));
         }
-        var renderer = (BlockEntityRenderer<TileEntityJoy>) mc.getBlockEntityRenderDispatcher().getRenderer(preview);
-        if (renderer != null) renderer.render(preview, partialTick, pose, buffers, light, OverlayTexture.NO_OVERLAY);
+        var renderer = (BlockEntityRenderer<TileEntityJoy, net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState>)
+                mc.getBlockEntityRenderDispatcher().getRenderer(preview);
+        if (renderer == null) return;
+        var camera = new net.minecraft.client.renderer.state.level.CameraRenderState();
+        var mainCamera = mc.gameRenderer.mainCamera();
+        camera.pos = mainCamera.position();
+        camera.yRot = mainCamera.yRot();
+        camera.xRot = mainCamera.xRot();
+        camera.orientation.set(mainCamera.rotation());
+        var state = renderer.createRenderState();
+        renderer.extractRenderState(preview, state, partialTick, camera.pos, null);
+        state.lightCoords = light;
+        renderer.submit(state, pose, buffers, camera);
     }
 
     @SubscribeEvent

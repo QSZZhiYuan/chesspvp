@@ -18,7 +18,7 @@ public final class ChessPvpNetwork {
         registrar.playToClient(BoardCarryState.TYPE, BoardCarryState.STREAM_CODEC,
                 (payload, context) -> CarriedBoardState.accept(payload.player(), payload.board()));
     }
-    public static void request(BlockPos pos) { PacketDistributor.sendToServer(new BoardCarryRequest(pos)); }
+    public static void request(BlockPos pos) { net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new BoardCarryRequest(pos)); }
     public static void sync(ServerPlayer player) {
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
                 new BoardCarryState(player.getUUID(), ChessPvpBoardCarry.getCarriedData(player)));

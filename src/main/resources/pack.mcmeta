@@ -1,6 +1,13 @@
 {
   "pack": {
     "description": "Chess PVP Addon resources",
-    "pack_format": 34
+    "min_format": [
+      88,
+      0
+    ],
+    "max_format": [
+      88,
+      0
+    ]
   }
 }

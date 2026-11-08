@@ -1,8 +1,8 @@
-# 验证记录 — 1.21.1 / 1.0.3
+# 验证记录 — 26.2 / 1.0.3
 
 日期：2026-11-08
-平台：NeoForge 21.1.244
-Java：21（class major 65）
+平台：NeoForge 26.2.0.45-beta
+Java：25（class major 69）
 
 ## 修复与核对
 
@@ -23,9 +23,9 @@ Java：21（class major 65）
 
 ## 发行包
 
-文件：`chesspvp-1.21.1-neoforge-1.0.3.jar`
-大小：43150 bytes
-SHA-256：`f5621ef59ba29deab7eee61e5530a0dfecb51b1b12b6e007f42102cb5b4e7592`
+文件：`chesspvp-26.2-neoforge-1.0.3.jar`
+大小：44514 bytes
+SHA-256：`c8145ea75fae5c49267676e68191e7112453cbfc081f1a5b15c23f359c448f37`
 
 客户端和服务端请同步替换为 1.0.3，勿同时安装旧附属包。
 更新前已经结束的女仆对局不会自动补发，需要更新后再次获胜。

@@ -1,6 +1,6 @@
 {
-  "filename": "touhoulittlemaid-1.5.3-neoforge+mc1.21.1.jar",
-  "sha256": "f6db04195820c8508704277ea76d63723804ff236a7b780369ba59ebe5cd9c27",
+  "filename": "touhoulittlemaid-1.5.3-neoforge+mc26.2.jar",
+  "sha256": "175574ff5d176f52ec16dad870ae9b7f1d6fbad795dda90b7390e091429c4aef",
   "embedded_in_addon": false,
-  "download_url": "https://cdn.modrinth.com/data/R0bDWFAW/versions/tXG1TkGx/touhoulittlemaid-1.5.3-neoforge%2Bmc1.21.1.jar"
+  "source_project": "https://github.com/QSZZhiYuan/TouhouLittleMaid-26.2"
 }

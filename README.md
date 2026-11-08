@@ -1,6 +1,6 @@
 # Chess PVP Addon
 
-为 Touhou Little Maid 添加玩家棋类对战与抱棋盘玩法。当前分支：**Minecraft 1.21.1 / NeoForge**，附属版本 **1.0.3**。
+为 Touhou Little Maid 添加玩家棋类对战与抱棋盘玩法。当前分支：**Minecraft 26.2 / NeoForge**，附属版本 **1.0.3**。
 
 ## 版本分支
 
@@ -26,15 +26,15 @@
 
 ## 构建
 
-使用 **JDK 21**。工程使用 Java toolchain，不包含本机 JDK 绝对路径。
+使用 **JDK 25**。工程使用 Java toolchain，不包含本机 JDK 绝对路径。
 
-先准备对应版本的 Touhou Little Maid 开发依赖（Python 3，仅标准库）：
+先从 [TouhouLittleMaid-26.2](https://github.com/QSZZhiYuan/TouhouLittleMaid-26.2) 准备对应移植版前置，然后导入：
 
 ```sh
-python scripts/prepare_dependency.py
+python scripts/prepare_dependency.py --file /path/to/touhoulittlemaid-1.5.3-neoforge+mc26.2.jar
 ```
 
-脚本从官方 Modrinth CDN 下载清单中固定版本，并校验 SHA-256。
+清单固定了本次验证所用前置的 SHA-256。该 26.2 前置不能用官方 1.21.1 JAR 替代。
 也可以自行准备兼容前置，通过 `-Pmaid_jar=/absolute/path/to/maid.jar` 指定，跳过清单脚本。
 
 ```sh
@@ -57,9 +57,6 @@ Gradle wrapper 已纳入版本控制；前置 JAR、构建目录、开发存档�
 ```
 
 这条命令只编译测试源码，不启动游戏。运行测试须单独选择 `runServer`，在隔离的 `build/port-integration-world` 中进行，并自行确认 EULA。
-
-可选客户端测试使用 `gradle/client-integration.init.gradle`，需要自行在 `build/carry-client/saves/chesspvp-carry-test` 准备隔离测试世界；可用 `-PchesspvpClientWorld=世界文件夹名` 指定。
-默认构建不会载入或启动客户端测试。
 
 ## 更新记录与许可
 

@@ -1,7 +1,8 @@
 package com.zawu.chesspvp.util;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.UUID;
@@ -13,11 +14,11 @@ public final class ChessPvpUtil {
     }
 
     public static UUID getP1(CompoundTag tag) {
-        return tag.hasUUID(ChessPvpKeys.PVP_P1) ? tag.getUUID(ChessPvpKeys.PVP_P1) : null;
+        return tag.read(ChessPvpKeys.PVP_P1, UUIDUtil.CODEC).orElse(null);
     }
 
     public static UUID getP2(CompoundTag tag) {
-        return tag.hasUUID(ChessPvpKeys.PVP_P2) ? tag.getUUID(ChessPvpKeys.PVP_P2) : null;
+        return tag.read(ChessPvpKeys.PVP_P2, UUIDUtil.CODEC).orElse(null);
     }
 
     public static boolean hasPvp(CompoundTag tag) {
@@ -39,11 +40,11 @@ public final class ChessPvpUtil {
     }
 
     public static void setP1(CompoundTag tag, UUID uuid) {
-        tag.putUUID(ChessPvpKeys.PVP_P1, uuid);
+        tag.store(ChessPvpKeys.PVP_P1, UUIDUtil.CODEC, uuid);
     }
 
     public static void setP2(CompoundTag tag, UUID uuid) {
-        tag.putUUID(ChessPvpKeys.PVP_P2, uuid);
+        tag.store(ChessPvpKeys.PVP_P2, UUIDUtil.CODEC, uuid);
     }
 
     public static void clearPvp(CompoundTag tag) {
@@ -53,7 +54,7 @@ public final class ChessPvpUtil {
     }
 
     public static int getTurn(CompoundTag tag) {
-        return tag.getInt(PVP_TURN);
+        return tag.getIntOr(PVP_TURN, 0);
     }
 
     public static void setTurn(CompoundTag tag, int turn) {
@@ -71,8 +72,8 @@ public final class ChessPvpUtil {
     }
 
     public static void awardChessSage(ServerPlayer player) {
-        var advancementId = ResourceLocation.fromNamespaceAndPath("chesspvp", "chess_sage");
-        var advancement = player.getServer().getAdvancements().get(advancementId);
+        var advancementId = Identifier.fromNamespaceAndPath("chesspvp", "chess_sage");
+        var advancement = player.level().getServer().getAdvancements().get(advancementId);
         if (advancement != null) {
             player.getAdvancements().award(advancement, "win");
         }
